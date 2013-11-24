@@ -844,8 +844,6 @@ int fcgi_accept_request(fcgi_request *req)
 					struct pollfd fds;
 					int ret;
 
-					fpm_request_reading_headers();
-
 					fds.fd = req->fd;
 					fds.events = POLLIN;
 					fds.revents = 0;
@@ -858,8 +856,6 @@ int fcgi_accept_request(fcgi_request *req)
 					}
 					fcgi_close(req, 1, 0);
 #else
-					fpm_request_reading_headers();
-
 					if (req->fd < FD_SETSIZE) {
 						struct timeval tv = {5,0};
 						fd_set set;
@@ -885,7 +881,10 @@ int fcgi_accept_request(fcgi_request *req)
 			}
 		} else if (in_shutdown) {
 			return -1;
+		} else {
+			fpm_request_accepting();
 		}
+
 		if (fcgi_read_request(req)) {
 #ifdef _WIN32
 			if (is_impersonate && !req->tcp) {
@@ -896,6 +895,8 @@ int fcgi_accept_request(fcgi_request *req)
 				}
 			}
 #endif
+			fpm_request_reading_headers();
+
 			return req->fd;
 		} else {
 			fcgi_close(req, 1, 1);
